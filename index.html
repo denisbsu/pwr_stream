@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    </style>
+    <style>
+      canvas {
+        border: 1px solid black;
+      }
+    </style>
+  </head>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+  var socket = io();
+  var min_ts = Infinity;
+  var min_freq = Infinity;
+  var max_freq = 0;
+  var max_pwr = -Infinity;
+  var min_pwr = Infinity;
+  var max_idx = 0;
+
+
+  socket.on('data', function(msg) {
+    const canvas = document.getElementById("the-canvas");
+    const ctx = canvas.getContext("2d");
+
+    min_ts = Math.min(min_ts, msg.ts);
+    min_freq = Math.min(min_freq, msg.from);
+    let to = msg.from + msg.step * msg.num_bands;
+    max_freq = Math.max(max_freq, to);
+    let local_min_pwr = Math.min.apply(null, msg.data);
+    let local_max_pwr = Math.max.apply(null, msg.data);
+    max_pwr = Math.max(local_max_pwr, max_pwr);
+    min_pwr = Math.min(local_min_pwr, min_pwr);
+    let time_idx = (msg.ts - min_ts) / 1000;
+    if (time_idx > max_idx) {
+      max_idx = time_idx;
+      let slicedata = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.putImageData(slicedata, 0, 1);
+    }
+
+    let canvas_start_coord = Math.round((msg.from - min_freq) / (max_freq - min_freq) * ctx.canvas.width);
+    let canvas_stop_coord = Math.round((to - min_freq) / (max_freq - min_freq) * ctx.canvas.width);
+    let canvas_segmant_len = canvas_stop_coord - canvas_start_coord;
+    let bins_data = new Array(canvas_segmant_len);
+    bins_data.fill(0)
+    let bins_count = new Array(canvas_segmant_len);
+    bins_count.fill(0)
+    for (let i = 0; i < msg.data.length; i++) {
+      let bin = Math.round((i / (msg.data.length - 1)) * (canvas_segmant_len - 1));
+      bins_data[bin] += msg.data[i];
+      bins_count[bin] += 1;
+    }
+    for (let i = 0; i < canvas_segmant_len; i++) {
+      bins_data[i] = (bins_data[i] / bins_count[i] - min_pwr) / (max_pwr - min_pwr);
+      ctx.fillStyle = "rgba(200,0,0," + bins_data[i] + ")";
+      ctx.fillRect(canvas_start_coord + i, 0, 1, 1);
+    }
+  });
+  </script>
+  <body>
+    <canvas id="the-canvas" style="width:100%;height:1000px;" width="1000" height="1000"></canvas>
+  </body>
+</html>
