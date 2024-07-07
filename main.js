@@ -43,6 +43,12 @@ parser.on('error', function(err){
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
+app.get('/colormaps.js', (req, res) => {
+  res.sendFile(__dirname + '/colormaps.js');
+});
+app.get('/chart.js', (req, res) => {
+  res.sendFile(__dirname + '/chart.js');
+});
 
 let tail = new Tail(FILENAME, {
   separator: /\r|\n/, 
