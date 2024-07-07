@@ -5,11 +5,6 @@
     <style>
       body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     </style>
-    <style>
-      canvas {
-        border: 1px solid black;
-      }
-    </style>
   </head>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -34,13 +29,18 @@
               display: false
             }
           },
+          layout: {
+            padding: {
+              left: 0
+            }
+          },
           scales: {
             x: {
               min:0,
               max:1000,
               type: "linear",
               display: false,
-              padding:0
+              padding: 0
             },
             y: {
               min:0,
@@ -89,16 +89,13 @@
     let canvas_stop_coord = Math.round((to - min_freq) / (max_freq - min_freq) * ctx.canvas.width);
     let canvas_segmant_len = canvas_stop_coord - canvas_start_coord;
     let bins_data = new Array(canvas_segmant_len);
-    bins_data.fill(0)
-    let bins_count = new Array(canvas_segmant_len);
-    bins_count.fill(0)
+    bins_data.fill(-Infinity)
     for (let i = 0; i < msg.data.length; i++) {
       let bin = Math.round((i / (msg.data.length - 1)) * (canvas_segmant_len - 1));
-      bins_data[bin] += msg.data[i];
-      bins_count[bin] += 1;
+      bins_data[bin] = Math.max(bins_data[bin], msg.data[i]);
     }
     for (let i = 0; i < canvas_segmant_len; i++) {
-      bins_data[i] = (bins_data[i] / bins_count[i] - min_pwr) / (max_pwr - min_pwr);
+      bins_data[i] = (bins_data[i] - min_pwr) / (max_pwr - min_pwr);
       ctx.fillStyle = "rgba(200,0,0," + bins_data[i] + ")";
 
       ctx.fillRect(canvas_start_coord + i, 0, 1, 1);
@@ -112,7 +109,11 @@
   });
   </script>
   <body>
-    <canvas id="myChart" style="width:100%;height:100px;" height="100"></canvas>
-    <canvas id="the-canvas" style="width:100%;height:1000px;" width="1000" height="1000"></canvas>
+    <div>
+      <canvas id="myChart" style="width: 100%; height: 100px;" height="100"></canvas>
+      <div style="height: 1000px; padding-left: 5px; padding-right: 7px;">
+      <canvas id="the-canvas" style="width: 100%; height: 1000px; border: 0px;" width="1000" height="1000"></canvas>
+      </div>
+    </div>
   </body>
 </html>
