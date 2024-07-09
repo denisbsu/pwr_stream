@@ -11,10 +11,17 @@
   <script src="/colormaps.js"></script>
   <script>
     let chart = undefined;
+    var socket = io();
+    var min_ts = Infinity;
+    var min_freq = Infinity;
+    var max_freq = 0;
+    var max_pwr = -Infinity;
+    var min_pwr = Infinity;
+    var max_idx = 0;
+  
     window.onload = function () {
       const ctx = document.getElementById('myChart');
       let data = (new Array(1000)).fill(0).map(function (v,i) { return {x:i, y:0};});
-      console.log(data);
 
       chart = new Chart(ctx, {
         type: 'line',
@@ -54,17 +61,21 @@
 
         }
       });
+      const canvas = document.getElementById('the-canvas');
+      var tooltipSpan = document.getElementById('tooltip');
+      canvas.addEventListener('click', (e) => {
+        const elementRelativeX = e.offsetX;
+        const canvasNormX = elementRelativeX / canvas.clientWidth;
+        const freq = min_freq + (max_freq - min_freq) * canvasNormX;
+        const freqMhz = (freq / 1000000).toFixed(3);
+        console.log('canvas click', freqMhz);
+        var x = e.clientX, y = e.clientY;
+        tooltipSpan.textContent = freqMhz + " MHz";
+        tooltipSpan.style.top = (y - 20) + 'px';
+        tooltipSpan.style.left = x + 'px';
+        tooltipSpan.style.display = "block";
+      });
     };
-
-
-  var socket = io();
-  var min_ts = Infinity;
-  var min_freq = Infinity;
-  var max_freq = 0;
-  var max_pwr = -Infinity;
-  var min_pwr = Infinity;
-  var max_idx = 0;
-
 
   socket.on('data', function(msg) {
     const canvas = document.getElementById("the-canvas");
@@ -115,7 +126,8 @@
     <div>
       <canvas id="myChart" style="width: 100%; height: 100px;" height="100"></canvas>
       <div style="height: 1000px; padding-left: 5px; padding-right: 7px;">
-      <canvas id="the-canvas" style="width: 100%; height: 1000px; border: 0px;" width="1000" height="1000"></canvas>
+        <span id="tooltip" style="display: none;position:fixed;"></span>
+        <canvas id="the-canvas" style="width: 100%; height: 1000px; border: 0px;" width="1000" height="1000"></canvas>
       </div>
     </div>
   </body>
